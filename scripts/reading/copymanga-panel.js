@@ -29,6 +29,7 @@ function dispose()
 	if(!current) return;
 	current.abort.abort();
 	current.observer?.disconnect();
+	current.pageObserver?.disconnect();
 	current.dialog.remove();
 	current.footer.remove();
 	current = null;
@@ -37,6 +38,28 @@ function dispose()
 function active(s)
 {
 	return current === s && s.root.isConnected && template._contentRight() === s.root;
+}
+
+function beginView(s)
+{
+	s.pageObserver?.disconnect();
+	return ++s.view;
+}
+
+function heading(s, target, title)
+{
+	const head = element('header',null,target);
+	element('h2',title,head);
+	const close = button(head,'×',() => {
+		if(target === s.dialog) {
+			s.dialog.close();
+		} else {
+			s.root.querySelector('.reading-content').scrollIntoView({block:'end'});
+		}
+	});
+	close.className = 'copy-close';
+	close.title = '关闭并返回漫画';
+	close.setAttribute('aria-label', close.title);
 }
 
 function resolveBinding(s)
@@ -68,7 +91,7 @@ async function attach(file, root, scroll)
 	}
 	dialog.addEventListener('close', () => {
 		if(!active(s)) return;
-		s.view++;
+		beginView(s);
 		refreshFooter(s);
 	});
 	try {
@@ -122,9 +145,9 @@ function end()
 
 function bindForm(s, target)
 {
-	const version = ++s.view;
+	const version = beginView(s);
 	target.replaceChildren();
-	element('h2', '绑定拷贝漫画作品', target);
+	heading(s, target, '绑定拷贝漫画作品');
 	element('p', '作品文件夹：'+s.folder, target);
 	const form = element('form', null, target);
 	const input = element('input', null, form);
@@ -158,9 +181,9 @@ function bindForm(s, target)
 function selectChapter(s, target)
 {
 	if(!s.book) return bindForm(s, target);
-	s.view++;
+	beginView(s);
 	target.replaceChildren();
-	element('h2','选择对应章节',target);
+	heading(s, target, '选择对应章节');
 	element('p',path.basename(s.file),target);
 	const select = element('select',null,target);
 	select.setAttribute('aria-label','对应章节');
@@ -183,11 +206,9 @@ function selectChapter(s, target)
 function render(s, target, refresh = false)
 {
 	if(!active(s)) return;
-	const version = ++s.view;
+	const version = beginView(s);
 	target.replaceChildren();
-	const head = element('header',null,target);
-	element('h2','本章吐槽',head);
-	if(target === s.dialog) button(head,'返回漫画',() => s.dialog.close());
+	heading(s, target, '本章吐槽');
 	element('p',s.label || path.basename(s.file),target);
 	const actions = element('div',null,target);
 	actions.className = 'copy-actions';
@@ -202,7 +223,15 @@ function render(s, target, refresh = false)
 	const controls = element('div',null,target);
 	let offset = 0, firstId = '';
 	const seen = new Set();
+	const scroller = target === s.dialog ? target : s.root.firstElementChild;
+	const observer = s.pageObserver = new IntersectionObserver(entries => {
+		for(const entry of entries) {
+			if(entry.isIntersecting && entry.target.parentElement === controls) void load();
+		}
+	}, {root:scroller});
 	const load = async (refresh = false) => {
+		if(!active(s) || s.view !== version || (target === s.dialog && !s.dialog.open)) return;
+		observer.disconnect();
 		controls.replaceChildren();
 		status.textContent = '正在读取吐槽…';
 		const key = 'roasts:'+s.chapter.id+':'+offset+(offset ? ':'+firstId : '');
@@ -222,6 +251,7 @@ function render(s, target, refresh = false)
 		}
 		if(!active(s) || s.view !== version) return;
 		if(!offset && page.list.length) firstId = page.list[0].id;
+		const previousCount = seen.size;
 		for(const comment of page.list) {
 			if(seen.has(comment.id)) continue;
 			seen.add(comment.id);
@@ -232,7 +262,10 @@ function render(s, target, refresh = false)
 		}
 		offset += page.list.length;
 		if(!status.textContent.startsWith('刷新失败')) status.textContent = (cached ? '已缓存 · ' : '')+(page.total ? '已显示 '+seen.size+' / '+page.total+' 条' : '本章还没有吐槽');
-		if(page.list.length && offset < page.total) button(controls,'加载更多',() => load());
+		if(page.list.length && offset < page.total) {
+			const more = button(controls,'加载更多',() => load());
+			if(seen.size > previousCount) observer.observe(more);
+		}
 	};
 	button(actions,'刷新',() => render(s,target,true));
 	void load(refresh);

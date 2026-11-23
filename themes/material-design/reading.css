@@ -1335,7 +1335,26 @@ oc-sfx
 .copy-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .copy-footer { max-width: 780px; margin: 0 auto; min-height: 200px; }
 .copy-comments header, .copy-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.copy-comments header { justify-content: space-between; }
+.copy-comments header {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	justify-content: space-between;
+	flex-wrap: nowrap;
+	padding-block: 8px;
+	background: var(--md-sys-bg-surface-container);
+}
+.copy-comments:has(> header) { padding-top: 0; }
+.copy-comments button.copy-close {
+	display: grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border-radius: 50%;
+	font-size: 24px;
+	line-height: 1;
+}
 .copy-comments h2 { font-size: 1.3rem; margin: 0; }
 .copy-comments button, .copy-comments input, .copy-comments select {
 	font: inherit; color: inherit; background: var(--md-sys-bg-surface-container);
