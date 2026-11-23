@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Move o zoom usando o mouse (Desabilita mover por arrastar e soltar)",
 			"scrollWithMouse": "Rola movendo o cursor perto das bordas (Desabilita rolagem por arrastar e soltar)",
 			"goNextPrevChapterWithScroll": "Vá para o capítulo próximo/anterior com a roda do mouse (Rolar)",
-			"turnPagesWithMouseWheel": "Vire páginas com a roda do mouse (Zoom apenas com a tecla Ctrl pressionada)",
+			"turnPagesWithMouseWheel": "Vire páginas com a roda do mouse (segure um botão lateral para ajustar o zoom)",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "",
 			"sensitivityInZoom": "",

@@ -719,26 +719,12 @@ function updateServers()
 
 function getTurnPagesWithMouseWheelShortcut()
 {
-	const list = shortcuts.shortcuts().reading.shortcuts;
-
-	if((list.MouseUp === 'prev' && list.MouseDown === 'next') || (list.MouseUp === 'next' && list.MouseDown === 'prev'))
-		return true;
-
-	return false;
+	return shortcuts.turnsPagesWithWheel(shortcuts.shortcuts().reading.shortcuts);
 }
 
 function setTurnPagesWithMouseWheelShortcut(active, generate = true)
 {
-	if(active)
-	{
-		shortcuts.change('reading', 'prev', '', 'MouseUp');
-		shortcuts.change('reading', 'next', '', 'MouseDown');
- 	}
-	else
-	{
-		shortcuts.change('reading', 'prev', 'MouseUp', '');
-		shortcuts.change('reading', 'next', 'MouseDown', '');
- 	}
+	shortcuts.setWheelPageTurns(active);
 
  	if(generate)
  	{

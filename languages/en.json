@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Move zoom using cursor (Disables moving by drag and drop)",
 			"scrollWithMouse": "Auto-scroll when vertically moving the cursor in the middle of the screen (Disables drag and drop scrolling)",
 			"goNextPrevChapterWithScroll": "Go next/previous chapter with mouse scroll (Vertical reading)",
-			"turnPagesWithMouseWheel": "Turn pages with mouse wheel (Zoom only with Ctrl key pressed)",
+			"turnPagesWithMouseWheel": "Turn pages with the mouse wheel (hold either mouse side button and scroll to zoom)",
 			"autodetectWebtoon": "Auto-detect webtoon",
 			"disableThumbnails": "Disable thumbnails (Show filenames)",
 			"sensitivityInZoom": "Sensitivity when zooming",

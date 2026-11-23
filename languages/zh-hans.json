@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "使用鼠标移动缩放（禁用通过拖放移动）",
 			"scrollWithMouse": "通过沿着屏幕边缘移动鼠标来滚动（禁用拖放滚动）",
 			"goNextPrevChapterWithScroll": "使用鼠标滚动转到下一章/上一章（垂直阅读）",
-			"turnPagesWithMouseWheel": "使用鼠标滚轮翻页（按住 Ctrl 键才可缩放）",
+			"turnPagesWithMouseWheel": "使用鼠标滚轮翻页（按住任一鼠标侧键滚动可缩放）",
 			"autodetectWebtoon": "自动检测网络漫画（条漫）",
 			"disableThumbnails": "禁用缩略图（显示文件名）",
 			"sensitivityInZoom": "缩放时的灵敏度",

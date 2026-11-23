@@ -25,7 +25,6 @@ async function loadShoShoObject()
 	});
 
 	mouseWheel = new MouseWheel({
-		capture: true,
 		target: contentRight,
 	});
 
@@ -1425,7 +1424,7 @@ function loadShortcuts()
 						if(force === null) force = !settings.getTurnPagesWithMouseWheelShortcut();
 						settings.setTurnPagesWithMouseWheelShortcut(force, false);
 						shortcutSnackbar(language.settings.reading.turnPagesWithMouseWheel, force);
-						reading.reloadAnimated(true);
+						register('reading', true);
 					},
 					state: () => settings.getTurnPagesWithMouseWheelShortcut(),
 					forzable: true,
@@ -1704,6 +1703,10 @@ function loadShortcuts()
 			shortcuts[section].shortcuts[shortcut] = action;
 		}
 
+		// Existing page-turn profiles stored their zoom modifier as Ctrl.
+		if(section === 'reading' && MouseWheel.turnsPages(shortcuts.reading.shortcuts))
+			MouseWheel.useSideZoom(shortcuts.reading.shortcuts);
+
 		// Tap zones
 		for(let shortcut in _shortcuts[section]?.tapZones)
 		{
@@ -1772,7 +1775,8 @@ async function register(section = 'reading', force = false)
 
 		const callback = function(event) {
 
-			if(inputIsFocused() || (section === 'reading' && !reading.isLoaded()))
+			// Panel controls and comment scrolling handle their own input.
+			if(event.target?.closest?.('.copy-comments') || inputIsFocused() || (section === 'reading' && !reading.isLoaded()))
 				return false;
 
 			macros.cancel();
@@ -1812,6 +1816,7 @@ function unregister(force = false)
 	{
 		shosho.reset();
 		shoshoMouse.reset();
+		mouseWheel.reset();
 		gamepad.reset('shortcuts');
 		currentlyRegistered = false;
 	}
@@ -1900,11 +1905,8 @@ function stopRecord()
 	}
 }
 
-function change(section, action, current, shortcut)
+function saveKeyBindings(section, bindings)
 {
-	if(!shortcuts[section])
-		loadShortcuts();
-
 	let saved = storage.getKey('shortcuts', section) || {};
 
 	saved.gamepad = shortcuts[section].gamepad;
@@ -1916,21 +1918,38 @@ function change(section, action, current, shortcut)
 		saved.actionsConfigured.push(shortcuts[section].actionsOrder[key]);
 	}
 
-	saved.shortcuts = {};
+	saved.shortcuts = bindings;
+	storage.setKey('shortcuts', section, saved);
+	loadShortcuts();
+}
+
+function change(section, action, current, shortcut)
+{
+	if(!shortcuts[section])
+		loadShortcuts();
+
+	const bindings = {};
 
 	for(let key in shortcuts[section].shortcuts)
 	{
 		if(key === current && shortcut)
-			saved.shortcuts[shortcut] = action;
+			bindings[shortcut] = action;
 		else if(key !== shortcut && key !== current)
-			saved.shortcuts[key] = shortcuts[section].shortcuts[key];
+			bindings[key] = shortcuts[section].shortcuts[key];
 	}
 
 	if(!current && shortcut)
-		saved.shortcuts[shortcut] = action;
+		bindings[shortcut] = action;
 
-	storage.setKey('shortcuts', section, saved);
+	saveKeyBindings(section, bindings);
+}
+
+function setWheelPageTurns(active)
+{
 	loadShortcuts();
+	const bindings = {...shortcuts.reading.shortcuts};
+	MouseWheel.setPageTurns(bindings, active);
+	saveKeyBindings('reading', bindings);
 }
 
 function changeGamepad(section, action, current, button)
@@ -2046,6 +2065,11 @@ module.exports = {
 	play: play,
 	pause: pause,
 	inputIsFocused: inputIsFocused,
+	sideWheelHeld: event => !!mouseWheel && !!mouseWheel.sideButtons(event),
+	isPreviousTap: event => !config.disableTapZones && currentlyRegistered === 'reading' &&
+		getTapZoneAction(event, 'leftClick') === shortcuts.reading.actions.prev,
+	turnsPagesWithWheel: MouseWheel.turnsPages,
+	setWheelPageTurns,
 	calcEventFromPoint: calcEventFromPoint,
 	get elementFromPoint() {return elementFromPoint;},
 };

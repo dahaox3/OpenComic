@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "جابجایی بزرگ‌نمایی با نشانگر (غیرفعال شدن کشیدن)",
 			"scrollWithMouse": "اسکرول خودکار با حرکت عمودی نشانگر در وسط صفحه",
 			"goNextPrevChapterWithScroll": "رفتن به چپتر بعد/قبل با اسکرول ماوس (مطالعه عمودی)",
-			"turnPagesWithMouseWheel": "ورق‌زدن با چرخ ماوس (بزرگ‌نمایی فقط با Ctrl)",
+			"turnPagesWithMouseWheel": "ورق زدن با چرخ ماوس (برای بزرگ‌نمایی یکی از دکمه‌های کناری ماوس را نگه دارید)",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "",
 			"sensitivityInZoom": "",

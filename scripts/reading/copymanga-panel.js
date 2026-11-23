@@ -88,8 +88,16 @@ function saveProgress()
 
 function accountControls(s, target)
 {
-	const section = element('details', null, target);
-	element('summary', '拷贝账号与阅读进度', section);
+	const toggle = button(target, '拷贝账号与阅读进度', () => {
+		section.hidden = !section.hidden;
+		toggle.setAttribute('aria-expanded', String(!section.hidden));
+		if(!section.hidden && !status.textContent) void run('status', s.chapter || {});
+	});
+	const section = element('section', null, target);
+	section.id = target === s.dialog ? 'copy-dialog-account' : 'copy-footer-account';
+	section.hidden = true;
+	toggle.setAttribute('aria-controls', section.id);
+	toggle.setAttribute('aria-expanded', 'false');
 	const status = element('p', '', section);
 	status.setAttribute('aria-live', 'polite');
 	const actions = element('div', null, section);
@@ -147,9 +155,6 @@ function accountControls(s, target)
 			}
 		} catch { show({signedIn:true,message:'读取本地阅读记录失败，请重试。'}); }
 	};
-	section.addEventListener('toggle',() => {
-		if(section.open && !actions.childElementCount && !status.textContent) void run('status',s.chapter || {});
-	});
 }
 
 async function attach(file, root, scroll)
@@ -196,7 +201,6 @@ function refreshFooter(s)
 	s.observer = new IntersectionObserver(entries => {
 		if(!entries.some(entry => entry.isIntersecting) || !active(s) || s.dialog.open) return;
 		s.observer.disconnect();
-		s.endSeen = true;
 		render(s, s.footer);
 	}, {root: s.root.firstElementChild});
 	s.observer.observe(heading);
@@ -208,7 +212,6 @@ function open(atEnd = false)
 	if(!s || !active(s)) return false;
 	s.endDialog = atEnd || (!!s.chapter && reading.isLoaded() && reading.currentIndex() === (reading.manga() ? 1 : reading.indexNum()));
 	if(s.endDialog) {
-		s.endSeen = true;
 		s.dialogEvents?.abort();
 		s.dialogEvents = new AbortController();
 		bindEndDialog(s);
@@ -227,16 +230,21 @@ function available()
 	return current && active(current) && !!(current.book || current.chapter);
 }
 
+function turnInDialog(forward)
+{
+	const s = current;
+	if(!s?.endDialog || !s.dialog.open || !active(s)) return false;
+	if(forward) void continueChapter(s);
+	else s.dialog.close();
+	return true;
+}
+
 function end()
 {
+	const s = current;
 	if(!available()) return false;
-	if(current.endSeen) {
-		void continueChapter(current);
-		return true;
-	}
-	current.endSeen = true;
-	if(current.scroll && !current.footer.hidden) {
-		current.footer.scrollIntoView({block:'start'});
+	if(s.scroll && !s.footer.hidden) {
+		if(!turnFromGutter()) s.footer.scrollIntoView({block:'start'});
 		return true;
 	}
 	return open(true);
@@ -245,7 +253,7 @@ function end()
 function turnFromGutter()
 {
 	const s = current;
-	if(!s?.endSeen || !active(s) || s.footer.hidden || s.dialog.open) return false;
+	if(!s || !active(s) || s.footer.hidden || s.dialog.open) return false;
 	if(s.footer.getBoundingClientRect().top >= s.root.firstElementChild.getBoundingClientRect().bottom - 1) return false;
 	void continueChapter(s);
 	return true;
@@ -262,11 +270,12 @@ async function continueChapter(s, destination)
 {
 	if(!active(s) || s.turning) return;
 	if(s.dialog.open) s.dialog.close();
-	if(reading.currentIndex() < 1 || reading.currentIndex() > reading.indexNum()) return;
+	const index = reading.currentIndex();
+	if(index < 1 || index > reading.indexNum()) return;
 	s.turning = true;
 	try {
 		const next = destination || await nextChapter(s);
-		if(!next || !active(s)) return;
+		if(!next || !active(s) || s.dialog.open || reading.currentIndex() !== index) return;
 		if(!s.footer.hidden) {
 			s.root.querySelector('.reading-content').scrollIntoView({block:'end'});
 		}
@@ -282,27 +291,31 @@ function bindEndDialog(s)
 		const box = s.dialog.getBoundingClientRect();
 		return point.clientX < box.left || point.clientX >= box.right || point.clientY < box.top || point.clientY >= box.bottom;
 	};
-	const turn = event => {
+	const turn = (event, forward) => {
 		event.preventDefault();
 		event.stopImmediatePropagation();
-		void continueChapter(s);
+		turnInDialog(forward);
 	};
 	const showing = () => s.endDialog && s.dialog.open && active(s);
 	let pointer = null, touch = null;
 	window.addEventListener('pointermove', event => { pointer = {clientX:event.clientX,clientY:event.clientY}; }, options);
 	window.addEventListener('wheel', event => {
-		if(!showing() || !outside(event) || event.ctrlKey || event.metaKey) return;
+		if(!showing() || !outside(event) || event.ctrlKey || event.metaKey || shortcuts.sideWheelHeld(event)) return;
 		const forward = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? (reading.manga() ? -event.deltaX : event.deltaX) : event.deltaY;
-		if(forward > 0) turn(event);
+		if(forward) turn(event, forward > 0);
 	}, options);
 	window.addEventListener('click', event => {
-		if(showing() && event.button === 0 && event.detail && outside(event)) turn(event);
+		if(!showing() || event.button !== 0 || !event.detail || !outside(event)) return;
+		const reader = s.root.getBoundingClientRect();
+		const inReader = event.clientX >= reader.left && event.clientX < reader.right && event.clientY >= reader.top && event.clientY < reader.bottom;
+		turn(event, inReader && !shortcuts.isPreviousTap(event));
 	}, options);
 	window.addEventListener('keydown', event => {
 		if(!showing() || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 		if(pointer ? !outside(pointer) : s.dialog.querySelector(':hover')) return;
 		if(event.target.closest('input,select,textarea,button,summary,a,[contenteditable=true]')) return;
-		if([reading.manga() ? 'ArrowLeft' : 'ArrowRight','ArrowDown','PageDown',' '].includes(event.key)) turn(event);
+		if([reading.manga() ? 'ArrowLeft' : 'ArrowRight','ArrowDown','PageDown',' '].includes(event.key)) turn(event, true);
+		else if([reading.manga() ? 'ArrowRight' : 'ArrowLeft','ArrowUp','PageUp'].includes(event.key)) turn(event, false);
 	}, options);
 	window.addEventListener('touchstart', event => {
 		const start = event.touches[0];
@@ -312,7 +325,8 @@ function bindEndDialog(s)
 		if(!touch || !showing()) return;
 		const last = event.changedTouches[0], dx = last.clientX - touch.x, dy = last.clientY - touch.y;
 		touch = null;
-		if((Math.abs(dx) > Math.abs(dy) ? (reading.manga() ? dx : -dx) : -dy) > 35) turn(event);
+		const distance = Math.abs(dx) > Math.abs(dy) ? (reading.manga() ? dx : -dx) : -dy;
+		if(Math.abs(distance) > 35) turn(event, distance > 0);
 	}, options);
 }
 
@@ -486,4 +500,4 @@ function bindFolder()
 	dialog.showModal();
 	bindForm(s, dialog);
 }
-module.exports = {bindFolder, attach, dispose, open, end, turnFromGutter, saveProgress, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};
+module.exports = {bindFolder, attach, dispose, open, end, turnInDialog, turnFromGutter, saveProgress, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};

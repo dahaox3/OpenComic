@@ -681,6 +681,8 @@ function goToChapterProgress(chapterIndex, chapterProgress, animation = true)
 //Go to the next comic page
 function goNext()
 {
+	if(copyComments.turnInDialog(!readingManga())) return;
+	if(turnDuringComicSkip(true)) return;
 	progress.activeSave();
 
 	if(readingViewIs('panels'))
@@ -720,6 +722,8 @@ function goNext()
 //Go to the previous comic page
 function goPrevious()
 {
+	if(copyComments.turnInDialog(readingManga())) return;
+	if(turnDuringComicSkip(false)) return;
 	progress.activeSave();
 
 	if(readingViewIs('panels'))
@@ -852,6 +856,7 @@ var scrollNextOrPrevComicDelayed = false, scrollNextOrPrevComicST = false;
 
 function scrollNextOrPrevComic(prev = false, delay = false)
 {
+	if(turnDuringComicSkip(!prev)) return true;
 	if(!prev && copyComments.inline) {
 		// Wheel events inside the footer scroll the comments. The gutter stays available for chapter navigation.
 		return copyComments.turnFromGutter();
@@ -896,7 +901,7 @@ function onScroll(event)
 {
 	if(!isLoaded || !onReading) return;
 
-	if(activeOnScroll && readingViewIs('scroll'))
+	if(activeOnScroll && !pendingComicSkip && readingViewIs('scroll'))
 	{
 		let scrollTop = this.scrollTop;
 
@@ -1064,26 +1069,56 @@ function rightClick(e)
 }
 
 var showComicSkip = false;
+let pendingComicSkip = null;
 
-function scheduleComicSkip(previous, destination)
+function clearComicSkip()
 {
-	const next = destination?.path || (previous ? dom.previousComic() : dom.nextComic());
-	const mainPath = destination?.mainPath || dom.history.mainPath;
-	return setTimeout(() => {
-		reading.progress.save();
-		reading.setFromSkip();
-		dom.openComic(true, next, mainPath, previous, false, true);
-	}, config.readingDelayComicSkip * 1000);
+	clearTimeout(showComicSkip);
+	showComicSkip = false;
+	pendingComicSkip = null;
+}
+
+function finishComicSkip()
+{
+	const skip = pendingComicSkip;
+	clearComicSkip();
+	if(!skip || !_onReading || !isLoaded || template._contentRight() !== skip.root) return;
+
+	reading.progress.save();
+	reading.setFromSkip();
+	dom.openComic(true, skip.path, skip.mainPath, skip.previous, false, true);
+}
+
+function scheduleComicSkip(forward, previous, destination)
+{
+	pendingComicSkip = {
+		forward,
+		previous,
+		path: destination?.path || (previous ? dom.previousComic() : dom.nextComic()),
+		mainPath: destination?.mainPath || dom.history.mainPath,
+		root: template._contentRight(),
+	};
+	showComicSkip = setTimeout(finishComicSkip, config.readingDelayComicSkip * 1000);
+}
+
+function turnDuringComicSkip(forward)
+{
+	if(!pendingComicSkip) return false;
+	if(forward === pendingComicSkip.forward) finishComicSkip();
+	else if(pendingComicSkip.forward) showNextComic(2);
+	else showPreviousComic(2);
+	return true;
 }
 
 //Begins to show the next comic
 function showNextComic(mode, animation = true, invert = false, destination = null)
 {	
+	if(mode == 1 && pendingComicSkip) return;
 	var content = template.contentRight().children('div');
 	var contentWidth = content.width();
 	var contentHeight = content.height();
 
-	clearTimeout(showComicSkip);
+	clearComicSkip();
 
 	if(mode == 1)
 	{
@@ -1133,7 +1168,7 @@ function showNextComic(mode, animation = true, invert = false, destination = nul
 			skip.find('circle').css('animation-duration', config.readingDelayComicSkip+'s').removeClass('a').delay(10).queue(function(next){$(this).addClass('a');next();});
 		}
 
-		showComicSkip = scheduleComicSkip(invert, destination);
+		scheduleComicSkip(true, invert, destination);
 
 		currentIndex = view.distribution.total + 1;
 	}
@@ -1174,11 +1209,12 @@ function showNextComic(mode, animation = true, invert = false, destination = nul
 //Begins to show the previous comic
 function showPreviousComic(mode, animation = true, invert = false, destination = null)
 {
+	if(mode == 1 && pendingComicSkip) return;
 	var content = template.contentRight().children('div');
 	var contentWidth = content.width();
 	var contentHeight = content.height();
 
-	clearTimeout(showComicSkip);
+	clearComicSkip();
 
 	if(mode == 1)
 	{
@@ -1228,7 +1264,7 @@ function showPreviousComic(mode, animation = true, invert = false, destination =
 			skip.find('circle').css('animation-duration', config.readingDelayComicSkip+'s').removeClass('a').delay(10).queue(function(next){$(this).addClass('a');next();});
 		}
 
-		showComicSkip = scheduleComicSkip(!invert, destination);
+		scheduleComicSkip(false, !invert, destination);
 
 		currentIndex = 0;
 	}
@@ -5090,7 +5126,8 @@ async function read(path, index = 1, end = false, isPdf = false, isEbook = false
 
 	let contentRightIndex = template.contentRightIndex();
 
-	items = [], imagesData = {}, imagesDataClip = {}, imagesPath = {}, imagesNum = 0, contentNum = 0, imagesNumLoad = 0, currentIndex = index, scrollInStart = false, scrollInEnd = false, prevChangeHeaderButtons = {}, trackingCurrent = false, pageRangeHistory = [], showComicSkip = false, ebookHasSelection = false;
+	clearComicSkip();
+	items = [], imagesData = {}, imagesDataClip = {}, imagesPath = {}, imagesNum = 0, contentNum = 0, imagesNumLoad = 0, currentIndex = index, scrollInStart = false, scrollInEnd = false, prevChangeHeaderButtons = {}, trackingCurrent = false, pageRangeHistory = [], ebookHasSelection = false;
 
 	isLoaded = false;
 	magnifyingGlassPosition.mode = false;

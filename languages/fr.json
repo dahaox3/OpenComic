@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Déplacer le zoom avec le curseur (désactive le déplacement par glisser-déposer)",
 			"scrollWithMouse": "Défilement auto en déplaçant verticalement le curseur au milieu de l’écran (désactive le défilement par glisser-déposer)",
 			"goNextPrevChapterWithScroll": "Aller au chapitre suivant/précédent avec la molette (Lecture verticale)",
-			"turnPagesWithMouseWheel": "Tourner les pages avec la molette (Zoom uniquement avec la touche Ctrl enfoncée)",
+			"turnPagesWithMouseWheel": "Tourner les pages avec la molette (maintenir un bouton latéral de la souris pour zoomer)",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "",
 			"sensitivityInZoom": "",

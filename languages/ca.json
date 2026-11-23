@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Moure el zoom mitjançant el cursor (Desactiva moure mitjançant arrossegar i deixar anar)",
 			"scrollWithMouse": "Desplaçament automàtic en moure el cursor verticalment al centre de la pantalla (Desactiva desplaçament mitjançant arrossegar i deixar anar)",
 			"goNextPrevChapterWithScroll": "Anar al capítol següent/anterior amb el desplaçament del ratolí (Lectura vertical)",
-			"turnPagesWithMouseWheel": "Passar pàgines amb la roda del ratolí (Zoom només amb la tecla Ctrl pressionada)",
+			"turnPagesWithMouseWheel": "Passar pàgines amb la roda del ratolí (mantén premut un botó lateral per fer zoom)",
 			"autodetectWebtoon": "Autodetectar webtoon",
 			"disableThumbnails": "Desactivar miniaturés (Mostrar els noms dels arxius)",
 			"sensitivityInZoom": "Sensibilitat en fer zoom",

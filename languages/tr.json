@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Fareyi kullanarak yakınlaşmış görüntüyü hareket ettir (Sürükle ve bırak ile sayfa çevirmeyi devre dışı bırakır)",
 			"scrollWithMouse": "Ekranın kenarları boyunca fareyi hareket ettirerek kaydır (Sürükle ve bırak ile sayfa çevirmeyi devre dışı bırakır)",
 			"goNextPrevChapterWithScroll": "Fare kaydırması ile sonraki/önceki bölüme git (Dikey okuma modu)",
-			"turnPagesWithMouseWheel": "Fare tekerleği ile sayfaları çevir (Yalnızca Ctrl tuşu basılıyken yakınlaştırır)",
+			"turnPagesWithMouseWheel": "Fare tekerleğiyle sayfaları çevir (yakınlaştırmak için farenin yan düğmelerinden birini basılı tut)",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "",
 			"sensitivityInZoom": "",

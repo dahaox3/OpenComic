@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "カーソル移動でズーム位置を移動（ドラッグ操作は無効化）",
 			"scrollWithMouse": "画面端でカーソルを移動してスクロール（ドラッグでのスクロールは無効化）",
 			"goNextPrevChapterWithScroll": "マウススクロールで次/前の章に移動（縦スクロール時）",
-			"turnPagesWithMouseWheel": "マウスホイールでページめくり（Ctrlキーを押しながらでズーム）",
+			"turnPagesWithMouseWheel": "マウスホイールでページめくり（マウスのサイドボタンを押しながら回すとズーム）",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "サムネイルを無効化（ファイル名を表示）",
 			"sensitivityInZoom": "",

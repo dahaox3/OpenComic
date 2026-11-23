@@ -348,7 +348,7 @@
 			"moveZoomWithMouse": "Przesuwaj powiększenie kursorem (wyłącza przesuwanie przez przeciągnij i upuść)",
 			"scrollWithMouse": "Przewijaj, przesuwając kursor wzdłuż krawędzi ekranu (wyłącza przewijanie przez przeciągnij i upuść)",
 			"goNextPrevChapterWithScroll": "Przechodź do następnego/poprzedniego rozdziału kółkiem myszy (czytanie pionowe)",
-			"turnPagesWithMouseWheel": "Przewracaj strony kółkiem myszy (powiększanie tylko z wciśniętym klawiszem Ctrl)",
+			"turnPagesWithMouseWheel": "Przewracaj strony kółkiem myszy (przytrzymaj boczny przycisk myszy, aby zmienić powiększenie)",
 			"autodetectWebtoon": "",
 			"disableThumbnails": "",
 			"sensitivityInZoom": "",
