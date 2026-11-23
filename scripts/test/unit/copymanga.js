@@ -38,3 +38,14 @@ test('legacy Colab names retain ambiguous groups and distinguish side stories', 
 	assert.deepEqual(candidates('第01卷.zip',chapters),[chapters[3]]);
 	assert.deepEqual(candidates('第2話',chapters),[]);
 });
+
+test('history import picks the latest actual reading per book and skips unresolved files', async () => {
+	const {latestRecords} = require('../../reading/copymanga-history.js');
+	const folder = path.resolve('MyBook');
+	const first = path.join(folder, '第1话'), second = path.join(folder, '第2话');
+	const ambiguous = path.join(folder, '番外');
+	const book = {slug:'book',chapters:[{id:'a',name:'第1話'},{id:'b',name:'第2話'},{id:'c',name:'番外'},{id:'d',name:'番外'}]};
+	const storage = {get:key => key === 'book:'+folder ? book : null};
+	const rows = [first, second, second, ambiguous].map((file,i) => ({path:path.join(file,'page.png'),index:i+1,lastReading:10+i}));
+	assert.deepEqual(await latestRecords(rows,storage,path.dirname),[{slug:'book',id:'b',page:3,recordedAt:12,historical:true}]);
+});

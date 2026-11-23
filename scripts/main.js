@@ -427,6 +427,7 @@ app.on('open-file', function(event, path) {
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
 
+	require('./copymanga-sync.js').install(windows);
 	createWindow();
 
 })

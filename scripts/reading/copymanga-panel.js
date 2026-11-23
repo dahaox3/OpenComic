@@ -1,6 +1,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const api = require('./copymanga.js');
+const history = require('./copymanga-history.js');
 let current, cache;
 
 function storage()
@@ -64,14 +65,91 @@ function heading(s, target, title)
 
 function resolveBinding(s)
 {
-	const book = storage().get('book:'+s.folder);
+	const {book, choices, chapter} = history.binding(s.file, storage());
 	s.book = book;
-	const manual = book && storage().get('chapter:'+book.slug+':'+s.file);
-	const choices = book ? api.candidates(path.basename(s.file), book.chapters) : [];
 	s.choices = choices;
-	const match = book?.chapters.find(row => row.id === manual) || (choices.length === 1 ? choices[0] : null);
-	s.chapter = s.embedded || (match && {slug: book.slug, id: match.id});
+	s.chapter = s.embedded || chapter;
 	s.label = book?.chapters.find(row => row.id === s.chapter?.id)?.name || path.basename(s.file).replace(/\.(cbz|zip)$/i, '');
+}
+
+async function account(action, data = {})
+{
+	try { return await electron.ipcRenderer.invoke('copymanga-sync', {action, ...data}); }
+	catch { return {state:'error', message:'无法连接进度同步服务，请重试。'}; }
+}
+
+function saveProgress()
+{
+	const s = current;
+	if(!s?.chapter || !active(s) || !reading.isLoaded()) return;
+	const page = Math.max(1, reading.currentPage());
+	void account('sync', {...s.chapter, page, recordedAt:Date.now()});
+}
+
+function accountControls(s, target)
+{
+	const section = element('details', null, target);
+	element('summary', '拷贝账号与阅读进度', section);
+	const status = element('p', '', section);
+	status.setAttribute('aria-live', 'polite');
+	const actions = element('div', null, section);
+	actions.className = 'copy-actions';
+	const alive = () => active(s) && section.isConnected;
+	const show = result => {
+		if(!alive()) return;
+		actions.replaceChildren();
+		const messages = {
+			'signed-out':'登录后可将本地阅读进度同步到拷贝漫画。',
+			ready:'已登录，阅读时自动同步最近章节。',
+			pending:'正在与网站核对最近章节…',
+			synced:'网站已确认本章为最后阅读章节。',
+		};
+		status.textContent = result.message || messages[result.state];
+		if(!result.signedIn) {
+			button(actions,'登录拷贝漫画',() => run('login'));
+			return;
+		}
+		if(s.chapter) button(actions,'同步当前章节',() => run('sync',{...s.chapter,page:Math.max(1,reading.currentPage()),recordedAt:Date.now()}));
+		button(actions,'补传已读作品',importHistory);
+		button(actions,'退出账号',() => run('logout'));
+	};
+	const run = async (action, data) => {
+		actions.replaceChildren();
+		status.textContent = action === 'login' ? '请在拷贝漫画官方窗口登录…' : '正在处理…';
+		const result = await account(action,data);
+		show(result);
+	};
+	const importHistory = async (conflicting = null) => {
+		actions.replaceChildren();
+		status.textContent = '正在查找每部作品最近阅读的章节…';
+		try {
+			const replace = Array.isArray(conflicting);
+			const records = replace ? conflicting : await history.latestRecords(relative.get('readingProgress'), storage(), image => {
+				if(!path.isAbsolute(image) || fileManager.isServer(image) || !compatible.image(image)) return null;
+				return fileManager.lastCompressedFile(image) || path.dirname(image);
+			});
+			const conflicts = [];
+			let synced = 0, kept = 0, failed = 0;
+			for(const record of records) {
+				if(!alive()) return;
+				status.textContent = '正在补传 '+(synced+kept+failed+1)+' / '+records.length+' 部作品…';
+				const result = await account('sync', {...record, historical:!replace});
+				if(result.state === 'signed-out') { show(result); return; }
+				if(result.state === 'synced') synced++;
+				else if(result.state === 'ready') kept++;
+				else failed++;
+				if(result.conflict) conflicts.push(record);
+			}
+			show({signedIn:true,message: records.length ? '已同步 '+synced+' 部，保留已有进度 '+kept+' 部，待重试 '+failed+' 部。' : '没有找到已关联拷贝章节的本地阅读记录。'});
+			if(alive() && conflicts.length) {
+				const replaceButton = button(actions,'以本地章节覆盖 '+conflicts.length+' 部网站记录',() => importHistory(conflicts));
+				replaceButton.title = conflicts.map(record => record.slug).join('、');
+			}
+		} catch { show({signedIn:true,message:'读取本地阅读记录失败，请重试。'}); }
+	};
+	section.addEventListener('toggle',() => {
+		if(section.open && !actions.childElementCount && !status.textContent) void run('status',s.chapter || {});
+	});
 }
 
 async function attach(file, root, scroll)
@@ -102,6 +180,7 @@ async function attach(file, root, scroll)
 	resolveBinding(s);
 	refreshFooter(s);
 	reading.changeHeaderButtons();
+	saveProgress();
 }
 
 function refreshFooter(s)
@@ -212,6 +291,7 @@ function render(s, target, refresh = false)
 	element('p',s.label || path.basename(s.file),target);
 	const actions = element('div',null,target);
 	actions.className = 'copy-actions';
+	accountControls(s,target);
 	if(!s.embedded) button(actions,s.book ? '校正章节' : '绑定整本作品',() => selectChapter(s,target));
 	if(!s.chapter) {
 		element('p',s.book ? '请选择此文件对应的章节。' : '绑定作品后，此文件夹内的章节会按名称匹配。',target);
@@ -309,4 +389,4 @@ function bindFolder()
 	dialog.showModal();
 	bindForm(s, dialog);
 }
-module.exports = {bindFolder, attach, dispose, open, end, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};
+module.exports = {bindFolder, attach, dispose, open, end, saveProgress, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};

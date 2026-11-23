@@ -10,6 +10,7 @@ function save(path = false, mainPath = false, hasKnownChildren = false)
 	if(!saveIsActive)
 		return;
 
+	const saveCurrent = !mainPath;
 	if(!path)
 	{
 		const image = reading.getImage(reading.currentPage());
@@ -85,6 +86,7 @@ function save(path = false, mainPath = false, hasKnownChildren = false)
 
 	dom.history.updateLastComic(path);
 
+	if(saveCurrent) reading.copyComments.saveProgress();
 	return true;
 }
 
