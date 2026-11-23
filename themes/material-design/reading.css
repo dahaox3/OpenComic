@@ -1325,6 +1325,7 @@ oc-sfx
 	user-select: text;
 }
 .copy-dialog {
+	overscroll-behavior: contain;
 	border: 1px solid var(--md-sys-color-surface-variant);
 	border-radius: 16px;
 	width: min(640px, 90vw);

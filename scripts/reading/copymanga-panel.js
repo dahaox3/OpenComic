@@ -169,6 +169,9 @@ async function attach(file, root, scroll)
 	}
 	dialog.addEventListener('close', () => {
 		if(!active(s)) return;
+		if(dialog.open) return;
+		s.dialogEvents?.abort();
+		s.endDialog = false;
 		beginView(s);
 		refreshFooter(s);
 	});
@@ -193,17 +196,29 @@ function refreshFooter(s)
 	s.observer = new IntersectionObserver(entries => {
 		if(!entries.some(entry => entry.isIntersecting) || !active(s) || s.dialog.open) return;
 		s.observer.disconnect();
+		s.endSeen = true;
 		render(s, s.footer);
 	}, {root: s.root.firstElementChild});
 	s.observer.observe(heading);
 }
 
-function open()
+function open(atEnd = false)
 {
 	const s = current;
 	if(!s || !active(s)) return false;
+	s.endDialog = atEnd || (!!s.chapter && reading.isLoaded() && reading.currentIndex() === (reading.manga() ? 1 : reading.indexNum()));
+	if(s.endDialog) {
+		s.endSeen = true;
+		s.dialogEvents?.abort();
+		s.dialogEvents = new AbortController();
+		bindEndDialog(s);
+	}
 	if(!s.dialog.open) s.dialog.showModal();
 	render(s, s.dialog);
+	if(s.endDialog) {
+		s.dialog.tabIndex = -1;
+		s.dialog.focus({preventScroll:true});
+	}
 	return true;
 }
 
@@ -215,11 +230,90 @@ function available()
 function end()
 {
 	if(!available()) return false;
+	if(current.endSeen) {
+		void continueChapter(current);
+		return true;
+	}
+	current.endSeen = true;
 	if(current.scroll && !current.footer.hidden) {
 		current.footer.scrollIntoView({block:'start'});
 		return true;
 	}
-	return open();
+	return open(true);
+}
+
+function turnFromGutter()
+{
+	const s = current;
+	if(!s?.endSeen || !active(s) || s.footer.hidden || s.dialog.open) return false;
+	if(s.footer.getBoundingClientRect().top >= s.root.firstElementChild.getBoundingClientRect().bottom - 1) return false;
+	void continueChapter(s);
+	return true;
+}
+
+function nextChapter(s)
+{
+	const next = dom.nextComic();
+	if(next) return {path:next, mainPath:dom.history.mainPath};
+	return siblingChapter(s).then(file => file && {path:file, mainPath:s.folder}, () => null);
+}
+
+async function continueChapter(s, destination)
+{
+	if(!active(s) || s.turning) return;
+	if(s.dialog.open) s.dialog.close();
+	if(reading.currentIndex() < 1 || reading.currentIndex() > reading.indexNum()) return;
+	s.turning = true;
+	try {
+		const next = destination || await nextChapter(s);
+		if(!next || !active(s)) return;
+		if(!s.footer.hidden) {
+			s.root.querySelector('.reading-content').scrollIntoView({block:'end'});
+		}
+		if(reading.manga()) reading.showPreviousComic(1, true, true, next);
+		else reading.showNextComic(1, true, false, next);
+	} finally { s.turning = false; }
+}
+
+function bindEndDialog(s)
+{
+	const options = {capture:true, passive:false, signal:AbortSignal.any([s.abort.signal,s.dialogEvents.signal])};
+	const outside = point => {
+		const box = s.dialog.getBoundingClientRect();
+		return point.clientX < box.left || point.clientX >= box.right || point.clientY < box.top || point.clientY >= box.bottom;
+	};
+	const turn = event => {
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		void continueChapter(s);
+	};
+	const showing = () => s.endDialog && s.dialog.open && active(s);
+	let pointer = null, touch = null;
+	window.addEventListener('pointermove', event => { pointer = {clientX:event.clientX,clientY:event.clientY}; }, options);
+	window.addEventListener('wheel', event => {
+		if(!showing() || !outside(event) || event.ctrlKey || event.metaKey) return;
+		const forward = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? (reading.manga() ? -event.deltaX : event.deltaX) : event.deltaY;
+		if(forward > 0) turn(event);
+	}, options);
+	window.addEventListener('click', event => {
+		if(showing() && event.button === 0 && event.detail && outside(event)) turn(event);
+	}, options);
+	window.addEventListener('keydown', event => {
+		if(!showing() || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+		if(pointer ? !outside(pointer) : s.dialog.querySelector(':hover')) return;
+		if(event.target.closest('input,select,textarea,button,summary,a,[contenteditable=true]')) return;
+		if([reading.manga() ? 'ArrowLeft' : 'ArrowRight','ArrowDown','PageDown',' '].includes(event.key)) turn(event);
+	}, options);
+	window.addEventListener('touchstart', event => {
+		const start = event.touches[0];
+		touch = showing() && event.touches.length === 1 && outside(start) ? {x:start.clientX,y:start.clientY} : null;
+	}, options);
+	window.addEventListener('touchend', event => {
+		if(!touch || !showing()) return;
+		const last = event.changedTouches[0], dx = last.clientX - touch.x, dy = last.clientY - touch.y;
+		touch = null;
+		if((Math.abs(dx) > Math.abs(dy) ? (reading.manga() ? dx : -dx) : -dy) > 35) turn(event);
+	}, options);
 }
 
 function bindForm(s, target)
@@ -349,13 +443,13 @@ function render(s, target, refresh = false)
 	};
 	button(actions,'刷新',() => render(s,target,true));
 	void load(refresh);
-	const addNext = (next, bookRoot) => button(actions,'下一话',() => {
+	const addNext = next => button(actions,'下一话',() => {
+		if(s.endDialog || target === s.footer) { void continueChapter(s,next); return; }
 		reading.progress.save();
-		dom.openComic(true,next,bookRoot,false,false,true);
+		dom.openComic(true,next.path,next.mainPath,false,false,true);
 	});
-	if(dom.nextComic()) addNext(dom.nextComic(),dom.history.mainPath);
-	else siblingChapter(s).then(next => {
-		if(next && active(s) && s.view === version) addNext(next,s.folder);
+	Promise.resolve(nextChapter(s)).then(next => {
+		if(next && active(s) && s.view === version) addNext(next);
 	}).catch(() => {});
 }
 
@@ -370,7 +464,10 @@ async function siblingChapter(s)
 	for(const name of entries.slice(index+1)) {
 		const sibling = path.join(s.folder,name);
 		if(s.book && (storage().get('chapter:'+s.book.slug+':'+sibling) || api.candidates(name,s.book.chapters).length === 1)) return sibling;
-		if(/\.(cbz|zip)$/i.test(name) && (await api.archiveSource(sibling))?.slug === s.chapter.slug) return sibling;
+		if(/\.(cbz|zip)$/i.test(name)) {
+			const source = await api.archiveSource(sibling).catch(() => null);
+			if(source && source.slug === (s.chapter?.slug || s.book?.slug)) return sibling;
+		}
 	}
 	return null;
 }
@@ -389,4 +486,4 @@ function bindFolder()
 	dialog.showModal();
 	bindForm(s, dialog);
 }
-module.exports = {bindFolder, attach, dispose, open, end, saveProgress, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};
+module.exports = {bindFolder, attach, dispose, open, end, turnFromGutter, saveProgress, get available(){return available();}, get inline(){return current?.scroll && !current.footer.hidden;}};

@@ -852,7 +852,10 @@ var scrollNextOrPrevComicDelayed = false, scrollNextOrPrevComicST = false;
 
 function scrollNextOrPrevComic(prev = false, delay = false)
 {
-	if(!prev && copyComments.inline) return false;
+	if(!prev && copyComments.inline) {
+		// Wheel events inside the footer scroll the comments. The gutter stays available for chapter navigation.
+		return copyComments.turnFromGutter();
+	}
 	if(!config.readingGoNextPrevChapterWithScroll) return;
 
 	if(delay && !scrollNextOrPrevComicDelayed && ((prev && scrollInStart) || (!prev && scrollInEnd)))
@@ -1062,8 +1065,19 @@ function rightClick(e)
 
 var showComicSkip = false;
 
+function scheduleComicSkip(previous, destination)
+{
+	const next = destination?.path || (previous ? dom.previousComic() : dom.nextComic());
+	const mainPath = destination?.mainPath || dom.history.mainPath;
+	return setTimeout(() => {
+		reading.progress.save();
+		reading.setFromSkip();
+		dom.openComic(true, next, mainPath, previous, false, true);
+	}, config.readingDelayComicSkip * 1000);
+}
+
 //Begins to show the next comic
-function showNextComic(mode, animation = true, invert = false)
+function showNextComic(mode, animation = true, invert = false, destination = null)
 {	
 	var content = template.contentRight().children('div');
 	var contentWidth = content.width();
@@ -1119,10 +1133,7 @@ function showNextComic(mode, animation = true, invert = false)
 			skip.find('circle').css('animation-duration', config.readingDelayComicSkip+'s').removeClass('a').delay(10).queue(function(next){$(this).addClass('a');next();});
 		}
 
-		if(invert)
-			showComicSkip = setTimeout('reading.progress.save(); reading.setFromSkip(); dom.openComic(true, "'+escapeQuotes(escapeBackSlash(dom.previousComic()), 'doubles')+'", "'+escapeQuotes(escapeBackSlash(dom.history.mainPath), 'doubles')+'", true, false, true);', config.readingDelayComicSkip * 1000);
-		else
-			showComicSkip = setTimeout('reading.progress.save(); reading.setFromSkip(); dom.openComic(true, "'+escapeQuotes(escapeBackSlash(dom.nextComic()), 'doubles')+'", "'+escapeQuotes(escapeBackSlash(dom.history.mainPath), 'doubles')+'", false, false, true);', config.readingDelayComicSkip * 1000);
+		showComicSkip = scheduleComicSkip(invert, destination);
 
 		currentIndex = view.distribution.total + 1;
 	}
@@ -1161,7 +1172,7 @@ function showNextComic(mode, animation = true, invert = false)
 }
 
 //Begins to show the previous comic
-function showPreviousComic(mode, animation = true, invert = false)
+function showPreviousComic(mode, animation = true, invert = false, destination = null)
 {
 	var content = template.contentRight().children('div');
 	var contentWidth = content.width();
@@ -1217,10 +1228,7 @@ function showPreviousComic(mode, animation = true, invert = false)
 			skip.find('circle').css('animation-duration', config.readingDelayComicSkip+'s').removeClass('a').delay(10).queue(function(next){$(this).addClass('a');next();});
 		}
 
-		if(invert)
-			showComicSkip = setTimeout('reading.progress.save(); reading.setFromSkip(); dom.openComic(true, "'+escapeQuotes(escapeBackSlash(dom.nextComic()), 'doubles')+'", "'+escapeQuotes(escapeBackSlash(dom.history.mainPath), 'doubles')+'", false, false, true);', config.readingDelayComicSkip * 1000);
-		else
-			showComicSkip = setTimeout('reading.progress.save(); reading.setFromSkip(); dom.openComic(true, "'+escapeQuotes(escapeBackSlash(dom.previousComic()), 'doubles')+'", "'+escapeQuotes(escapeBackSlash(dom.history.mainPath), 'doubles')+'", true, false, true);', config.readingDelayComicSkip * 1000);
+		showComicSkip = scheduleComicSkip(!invert, destination);
 
 		currentIndex = 0;
 	}
