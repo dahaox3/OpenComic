@@ -1,3 +1,5 @@
+[**本 fork 使用说明 · Windows 便携版、Colab 批量超分与拷贝漫画章末吐槽**](COPYMANGA.md)
+
 <div align="center" >
 	<img src="https://raw.githubusercontent.com/ollm/OpenComic/master/images/icon-border-transparent.png" width="128px" height="128px"/>
 </div>

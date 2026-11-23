@@ -1315,3 +1315,35 @@ oc-sfx
 	background-color: transparent !important;
 	cursor: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2232px%22%20width%3D%2232px%22%20viewBox%3D%220%20-960%20960%20960%22%3E%3Cpath%20fill%3D%22black%22%20stroke%3D%22white%22%20stroke-width%3D%2220%22%20d%3D%22M127-167q-47-47-47-113t47-113q47-47%20113-47%2023%200%2042.5%205.5T320-418v-342l480-80v480q0%2066-47%20113t-113%2047q-66%200-113-47t-47-113q0-66%2047-113t113-47q23%200%2042.5%205.5T720-498v-165l-320%2063v320q0%2066-47%20113t-113%2047q-66%200-113-47Z%22%2F%3E%3C%2Fsvg%3E') 16 16, pointer;
 }
+.copy-comments {
+	box-sizing: border-box;
+	color: var(--md-sys-color-on-surface);
+	background: var(--md-sys-bg-surface-container);
+	font: inherit;
+	padding: 24px clamp(16px, 4vw, 40px);
+	text-align: start;
+	user-select: text;
+}
+.copy-dialog {
+	border: 1px solid var(--md-sys-color-surface-variant);
+	border-radius: 16px;
+	width: min(640px, 90vw);
+	max-height: 80vh;
+	margin: auto;
+	overflow: auto;
+}
+.copy-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.copy-footer { max-width: 780px; margin: 0 auto; min-height: 200px; }
+.copy-comments header, .copy-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.copy-comments header { justify-content: space-between; }
+.copy-comments h2 { font-size: 1.3rem; margin: 0; }
+.copy-comments button, .copy-comments input, .copy-comments select {
+	font: inherit; color: inherit; background: var(--md-sys-bg-surface-container);
+	border: 1px solid var(--md-sys-color-outline); border-radius: 8px; padding: 7px 12px;
+}
+.copy-comments button { cursor: pointer; }
+.copy-comments input, .copy-comments select { width: 100%; box-sizing: border-box; margin-bottom: 12px; }
+.copy-comments ol { list-style: none; padding: 0; }
+.copy-comments li { padding: 12px 0; border-top: 1px solid var(--md-sys-color-surface-variant); }
+.copy-comments li p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; }
+.copy-comments time { margin-inline-start: 12px; color: var(--md-sys-color-on-surface-variant); font-size: 0.85em; }

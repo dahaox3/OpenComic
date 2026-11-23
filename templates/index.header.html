@@ -42,6 +42,7 @@
 		<div class="material-icon button button2 button-only-root hover-text{{#if page.filter.onlyRoot}} fill{{/if}}" hover-text="{{language.global.filter.onlyRoot}}" onclick="dom.labels.filterOnlyRoot();">drive_folder_upload</div>
 		{{/if}}
 		{{#unless comicsIndex}}
+		{{#if headerTitlePath}}<button class="material-icon button button1 hover-text" type="button" title="绑定拷贝漫画作品" aria-label="绑定拷贝漫画作品" onclick="reading.copyComments.bindFolder()">link</button>{{/if}}
 		{{#if comicsDeep2}}
 		<div class="bar-buttons-separator"></div>
 		<div class="material-icon button button2 button-next-comic hover-text disable-pointer" hover-text="{{language.reading.nextChapter}}" onclick="dom.goNextComic();">navigate_next</div>

@@ -1,3 +1,4 @@
+const copyComments = require(p.join(appDir, '.dist/reading/copymanga-panel.js'));
 const render = require(p.join(appDir, '.dist/reading/render.js')),
 	filters = require(p.join(appDir, '.dist/reading/filters.js')),
 	ai = require(p.join(appDir, '.dist/reading/ai.js')),
@@ -67,6 +68,11 @@ function changeHeaderButtons(scrollInStart = null, scrollInEnd = null)
 			nextIsNextComic = true;
 			canGoNext = dom.nextComic();
 		}
+	}
+
+	if(copyComments.available) {
+		if(readingManga() && currentIndex === 1) canGoPrev = true;
+		if(!readingManga() && currentIndex === view.distribution.total) canGoNext = true;
 	}
 
 	let currentChangeHeaderButtons = {
@@ -700,6 +706,7 @@ function goNext()
 
 		music.soundEffect.page();
 	}
+	else if(currentIndex == view.distribution.total && !readingManga() && copyComments.end()) return;
 	else if(currentIndex == view.distribution.total && dom.nextComic() && !readingManga())
 	{
 		showNextComic(1, true);
@@ -738,6 +745,7 @@ function goPrevious()
 
 		music.soundEffect.page();
 	}
+	else if(previousIndex == 0 && readingManga() && copyComments.end()) return;
 	else if(previousIndex == 0 && dom.previousComic() && !readingManga())
 	{
 		showPreviousComic(1, true);
@@ -844,6 +852,7 @@ var scrollNextOrPrevComicDelayed = false, scrollNextOrPrevComicST = false;
 
 function scrollNextOrPrevComic(prev = false, delay = false)
 {
+	if(!prev && copyComments.inline) return false;
 	if(!config.readingGoNextPrevChapterWithScroll) return;
 
 	if(delay && !scrollNextOrPrevComicDelayed && ((prev && scrollInStart) || (!prev && scrollInEnd)))
@@ -5086,6 +5095,7 @@ async function read(path, index = 1, end = false, isPdf = false, isEbook = false
 	fromSkip = false;
 
 	readingCurrentPath = path;
+	copyComments.dispose();
 
 	filters.setImagesPath(false);
 
@@ -5800,6 +5810,8 @@ async function read(path, index = 1, end = false, isPdf = false, isEbook = false
 
 	template.contentRight().children('div').css({scrollbarGutter: readingViewIs('scroll') ? '' : 'initial'});
 
+	const commentFile = !isPdf && !isEbook && !fileManager.isServer(path) && (fileManager.lastCompressedFile(path) || path);
+	void copyComments.attach(commentFile, template._contentRight(), readingView() === 'scroll');
 	tracking.autoPrompt();
 	tracking.getImagesChapter();
 	
@@ -5820,6 +5832,8 @@ async function read(path, index = 1, end = false, isPdf = false, isEbook = false
 }
 
 module.exports = {
+	copyComments,
+	changeHeaderButtons,
 	read: read,
 	reload: reload,
 	reloadAnimated: reloadAnimated,

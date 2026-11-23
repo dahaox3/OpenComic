@@ -18,6 +18,7 @@
 <div class="bar-right-buttons reading-header reading-header-loading scroll-fade-x">
 	<div>
 		<div class="material-icon button button-min button1 button-more-options hover-text" hover-text="{{language.reading.moreOptions.main}}" onclick="reading.loadReadingMoreOptions(); events.activeMenu('#reading-more-options', '.bar-right-buttons .button-more-options', 'right');">more_vert</div>
+		<button class="material-icon button button1 hover-text" type="button" title="本章吐槽" aria-label="本章吐槽" onclick="reading.copyComments.open()">forum</button>
 		<div class="bar-buttons-separator seperator-sort"></div>
 		<div class="material-icon button button1 button-sort hover-text" hover-text="{{language.global.sort.main}}" onclick="events.activeMenu('#reading-sort', '.bar-right-buttons .button-sort', 'right');">sort</div>
 		<div class="bar-buttons-separator seperator-layout"></div>
